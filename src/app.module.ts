@@ -1,11 +1,11 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
-import { envValidationSchema } from './config/env.validation.js';
-import { UsersModule } from './users/users.module.js';
+import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { getDatabaseConfig } from './config/database.config.js';
+import { envValidationSchema } from './config/env.validation.js';
 import { RolesModule } from './roles/roles.module.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
@@ -14,17 +14,9 @@ import { RolesModule } from './roles/roles.module.js';
       validationSchema: envValidationSchema,
     }),
     TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USER'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
+      useFactory: () => ({
+        ...getDatabaseConfig(),
         autoLoadEntities: true,
-        synchronize: false,
-        namingStrategy: new SnakeNamingStrategy(),
       }),
     }),
     UsersModule,
