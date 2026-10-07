@@ -1,13 +1,15 @@
 import {
   Column,
   CreateDateColumn,
-  Entity, JoinTable,
+  Entity,
+  JoinTable,
   ManyToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Role } from '../../roles/entities/role.entity.js';
+import { UserTypeEnum } from '../enums/user-type.enum.js';
 
 @Entity('users')
 export class User {
@@ -23,6 +25,9 @@ export class User {
 
   @Column('varchar', { length: 255, nullable: false })
   name: string;
+
+  @Column({ type: 'enum', enum: UserTypeEnum })
+  type: UserTypeEnum;
 
   @Column('varchar', { length: 255, nullable: false, default: 'UTC' })
   timezone: string;
