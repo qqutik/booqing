@@ -1,8 +1,11 @@
-import { Module } from '@nestjs/common';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { envValidationSchema } from './config/env.validation.js';
+import { UsersModule } from './users/users.module.js';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { RolesModule } from './roles/roles.module.js';
 
 @Module({
   imports: [
@@ -24,8 +27,15 @@ import { envValidationSchema } from './config/env.validation.js';
         namingStrategy: new SnakeNamingStrategy(),
       }),
     }),
+    UsersModule,
+    RolesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClassSerializerInterceptor,
+    },
+  ],
 })
 export class AppModule {}
