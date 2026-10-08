@@ -25,12 +25,12 @@ export class UsersService {
 
   public async findById(id: number) {
     const user = await this.usersRepository.findOneBy({ id });
-      if (!user) {
-        throw new NotFoundException(`User #${id} not found`);
-      }
+    if (!user) {
+      throw new NotFoundException(`User #${id} not found`);
+    }
     return user;
   }
-
+  
   public async create(createUserDto: CreateUserDto) {
     const existingUser = await this.findByEmail(createUserDto.email);
     if (existingUser) {
