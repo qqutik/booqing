@@ -47,7 +47,7 @@ export class ResourcesService {
 
   public async remove(id: number, userId: number) {
     const resource = await this.findById(id);
-    this.checkUser(resource,userId);
+    this.checkUser(resource, userId);
     await this.repository.remove(resource);
   }
 

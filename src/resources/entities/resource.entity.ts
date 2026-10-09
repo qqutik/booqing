@@ -4,12 +4,14 @@ import {
   Entity,
   Index,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   type Relation,
   UpdateDateColumn,
 } from 'typeorm';
 import { ResourceTypeEnum } from '../enums/resource-type.enum.js';
 import type { User } from '../../users/entities/user.entity.js';
+import type { WorkingHours } from '../../working-hours/entities/working-hours.entity.js';
 
 @Entity('resources')
 export class Resource {
@@ -52,4 +54,10 @@ export class Resource {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
+
+  @OneToMany(
+    'WorkingHours',
+    (workingHours: WorkingHours) => workingHours.resource,
+  )
+  workingHours: WorkingHours[];
 }
