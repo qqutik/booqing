@@ -16,13 +16,17 @@ import { CreateResourceDto } from './dto/create-resource.dto.js';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
+import { UserTypeGuard } from '../auth/guards/user-type.guard.js';
+import { UserTypes } from '../auth/decorators/user-types.decorator.js';
+import { UserTypeEnum } from '../users/enums/user-type.enum.js';
 
 @Controller('resources')
 export class ResourcesController {
   constructor(private readonly service: ResourcesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserTypeGuard)
+  @UserTypes([UserTypeEnum.PROVIDER])
   public create(
     @Body() dto: CreateResourceDto,
     @CurrentUser() user: JwtPayload,
@@ -41,7 +45,8 @@ export class ResourcesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserTypeGuard)
+  @UserTypes([UserTypeEnum.PROVIDER])
   public update(
     @Body() dto: UpdateResourceDto,
     @Param('id', ParseIntPipe) id: number,
@@ -52,7 +57,8 @@ export class ResourcesController {
 
   @HttpCode(204)
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserTypeGuard)
+  @UserTypes([UserTypeEnum.PROVIDER])
   public remove(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
