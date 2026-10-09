@@ -20,10 +20,10 @@ export class AuthService {
 
   public async login(loginDto: LoginDto) {
     const user = await this.usersService.findByEmail(loginDto.email);
-      if (!user) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-    const isMatch = await argon2.verify(user.password,loginDto.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const isMatch = await argon2.verify(user.password, loginDto.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }

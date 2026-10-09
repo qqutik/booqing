@@ -13,18 +13,18 @@ import * as argon2 from 'argon2';
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
+    private readonly repository: Repository<User>,
   ) {}
 
   public async findByEmail(email: string) {
-    return await this.usersRepository.findOne({
+    return await this.repository.findOne({
       where: { email },
       select: { id: true, email: true, password: true },
     });
   }
 
   public async findById(id: number) {
-    const user = await this.usersRepository.findOneBy({ id });
+    const user = await this.repository.findOneBy({ id });
     if (!user) {
       throw new NotFoundException(`User #${id} not found`);
     }
@@ -38,10 +38,10 @@ export class UsersService {
     }
     const { password, ...rest } = createUserDto;
     const hashedPassword = await argon2.hash(password);
-    const user = this.usersRepository.create({
+    const user = this.repository.create({
       ...rest,
       password: hashedPassword,
     });
-    return this.usersRepository.save(user);
+    return this.repository.save(user);
   }
 }
