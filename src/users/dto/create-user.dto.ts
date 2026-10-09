@@ -1,7 +1,6 @@
 import {
   IsEmail,
   IsEnum,
-  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -11,7 +10,7 @@ import {
 } from 'class-validator';
 import { UserTypeEnum } from '../enums/user-type.enum.js';
 
-export class CreateUserDto {
+export class CreateUserDto{
   @MaxLength(255)
   @IsString()
   @IsNotEmpty()

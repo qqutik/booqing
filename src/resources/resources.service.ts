@@ -13,7 +13,7 @@ import { UpdateResourceDto } from './dto/update-resource.dto.js';
 export class ResourcesService {
   constructor(
     @InjectRepository(Resource)
-    private readonly repository: Repository<Resource>
+    private readonly repository: Repository<Resource>,
   ) {}
 
   public async create(dto: CreateResourceDto, userId: number) {
@@ -40,18 +40,20 @@ export class ResourcesService {
 
   public async update(dto: UpdateResourceDto, id: number, userId: number) {
     const resource = await this.findById(id);
-    if (resource.userId !== userId){
-      throw new ForbiddenException(`Resource #${id} cant be changed`);
-    }
+    this.checkUser(resource, userId);
     Object.assign(resource, dto);
     return this.repository.save(resource);
   }
 
   public async remove(id: number, userId: number) {
     const resource = await this.findById(id);
-    if (resource.userId !== userId){
-      throw new ForbiddenException(`Resource #${id} cant be changed`);
+    this.checkUser(resource,userId);
+    await this.repository.remove(resource);
+  }
+
+  private checkUser(resource: Resource, userId: number) {
+    if (resource.userId !== userId) {
+      throw new ForbiddenException(`Resource #${resource.id} cant be changed`);
     }
-     await this.repository.remove(resource);
   }
 }
