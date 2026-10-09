@@ -7,6 +7,7 @@ import { envValidationSchema } from './config/env.validation.js';
 import { RolesModule } from './roles/roles.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { ResourcesModule } from './resources/resources.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuthModule } from './auth/auth.module.js';
     UsersModule,
     RolesModule,
     AuthModule,
+    ResourcesModule,
   ],
   controllers: [],
   providers: [

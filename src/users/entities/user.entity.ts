@@ -4,12 +4,14 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Role } from '../../roles/entities/role.entity.js';
 import { UserTypeEnum } from '../enums/user-type.enum.js';
+import type { Resource } from '../../resources/entities/resource.entity.js';
 
 @Entity('users')
 export class User {
@@ -45,4 +47,7 @@ export class User {
     inverseJoinColumn: { name: 'role_id' },
   })
   roles: Role[];
+
+  @OneToMany('Resource', (resource: Resource) => resource.user)
+  resources: Resource[];
 }

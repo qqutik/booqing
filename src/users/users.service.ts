@@ -30,7 +30,7 @@ export class UsersService {
     }
     return user;
   }
-  
+
   public async create(createUserDto: CreateUserDto) {
     const existingUser = await this.findByEmail(createUserDto.email);
     if (existingUser) {
