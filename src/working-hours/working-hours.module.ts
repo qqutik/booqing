@@ -8,6 +8,6 @@ import { ResourcesModule } from '../resources/resources.module.js';
 @Module({
   providers: [WorkingHoursService],
   controllers: [WorkingHoursController],
-  imports: [ResourcesModule,TypeOrmModule.forFeature([WorkingHours])],
+  imports: [ResourcesModule, TypeOrmModule.forFeature([WorkingHours])],
 })
 export class WorkingHoursModule {}

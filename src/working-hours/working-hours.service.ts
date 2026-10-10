@@ -56,13 +56,13 @@ export class WorkingHoursService {
     });
   }
 
-  public async findAll(resourceId: number){
+  public async findAll(resourceId: number) {
     await this.resourceService.findById(resourceId);
     return this.repository.find({
       where: { resourceId: resourceId },
       order: { weekday: 'ASC', startTime: 'ASC' },
     });
-  };
+  }
 
   private checkIntervals(intervals: CreateWorkingHoursDto[]) {
     const byWeekday = new Map<number, CreateWorkingHoursDto[]>();

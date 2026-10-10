@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ResourcesModule } from './resources/resources.module.js';
 import { WorkingHoursModule } from './working-hours/working-hours.module.js';
+import { SlotsModule } from './slots/slots.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { WorkingHoursModule } from './working-hours/working-hours.module.js';
     AuthModule,
     ResourcesModule,
     WorkingHoursModule,
+    SlotsModule,
   ],
   controllers: [],
   providers: [
