@@ -9,5 +9,6 @@ import { ResourcesModule } from '../resources/resources.module.js';
   providers: [WorkingHoursService],
   controllers: [WorkingHoursController],
   imports: [ResourcesModule, TypeOrmModule.forFeature([WorkingHours])],
+  exports: [WorkingHoursService],
 })
 export class WorkingHoursModule {}
