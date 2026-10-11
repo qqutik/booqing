@@ -4,13 +4,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Slot } from './entities/slot.entity.js';
 import { ResourcesService } from '../resources/resources.service.js';
 import { WorkingHoursService } from '../working-hours/working-hours.service.js';
 import { DateTime } from 'luxon';
 import type { WorkingHoursInterface } from '../working-hours/interfaces/working-hours.interface.js';
 import type { SlotsInterface } from './interfaces/slots.interface.js';
+import { GetSlotsDto } from './dto/get-slots.dto.js';
+import { SlotStatusEnum } from './enums/slot-status.enum.js';
 
 @Injectable()
 export class SlotsService {
@@ -20,6 +22,43 @@ export class SlotsService {
     private readonly resourceService: ResourcesService,
     private readonly workingHoursService: WorkingHoursService,
   ) {}
+
+  public async findAll(resourceId: number, dto: GetSlotsDto) {
+    const resource = await this.resourceService.findById(resourceId);
+    if (!resource) {
+      throw new BadRequestException('Resource not found');
+    }
+    const timezone = dto.timezone ?? resource.timezone;
+
+    const fromDate = DateTime.fromISO(dto.from, { zone: timezone })
+      .startOf('day')
+      .toJSDate();
+    const toDate = DateTime.fromISO(dto.to, { zone: timezone })
+      .endOf('day')
+      .toJSDate();
+    if (fromDate > toDate) {
+      throw new BadRequestException('Date interval incorrect');
+    }
+
+    const slots = await this.repository.find({
+      where: {
+        resourceId,
+        status: SlotStatusEnum.AVAILABLE,
+        startAt: Between(fromDate, toDate),
+      },
+      order: { startAt: 'ASC' },
+    });
+
+    return slots.map(slot => {
+      return {
+        id: slot.id,
+        resourceId: slot.resourceId,
+        status: slot.status,
+        startAt: DateTime.fromJSDate(slot.startAt).setZone(timezone).toISO(),
+        endAt: DateTime.fromJSDate(slot.endAt).setZone(timezone).toISO(),
+      };
+    });
+  }
 
   public async generate(resourceId: number, userId: number) {
     const resource = await this.resourceService.findById(resourceId);
