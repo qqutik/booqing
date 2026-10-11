@@ -23,7 +23,7 @@ export class SlotsService {
 
   public async generate(resourceId: number, userId: number) {
     const resource = await this.resourceService.findById(resourceId);
-    if (resource.userId !== userId){
+    if (resource.userId !== userId) {
       throw new ForbiddenException('Resource not found');
     }
     const workingHours = await this.workingHoursService.findAll(resourceId);
@@ -36,8 +36,15 @@ export class SlotsService {
     if (slots.length === 0) {
       throw new BadRequestException('No working hours found');
     }
-    const slotsData = slots.map(slot => {return { ...slot, resourceId }})
-    await this.repository.createQueryBuilder().insert().values(slotsData).orIgnore().execute();
+    const slotsData = slots.map((slot) => {
+      return { ...slot, resourceId };
+    });
+    await this.repository
+      .createQueryBuilder()
+      .insert()
+      .values(slotsData)
+      .orIgnore()
+      .execute();
     return slotsData;
   }
 
@@ -46,17 +53,16 @@ export class SlotsService {
     intervals: WorkingHoursInterface[],
     days: number,
     startDate: DateTime,
-  ):SlotsInterface[] {
-
+  ): SlotsInterface[] {
     const result: SlotsInterface[] = [];
 
     for (let i = 0; i < days; i++) {
       //поточна дата початок дня
       const day = startDate.plus({ days: i }).startOf('day');
       //дістаються тільки години поточного дня
-      const workingHours = intervals.filter(interval => {
+      const workingHours = intervals.filter((interval) => {
         return interval.weekday === day.weekday;
-      })
+      });
 
       for (const workingHour of workingHours) {
         const startTime = workingHour.startTime.split(':');
@@ -80,7 +86,6 @@ export class SlotsService {
           });
           cursor = cursor.plus({ minutes: duration });
         }
-
       }
     }
     return result;

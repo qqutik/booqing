@@ -23,7 +23,7 @@ export class Slot {
   @Column()
   resourceId: number;
 
-  @ManyToOne('Resource',{
+  @ManyToOne('Resource', {
     nullable: false,
     onDelete: 'CASCADE',
   })
