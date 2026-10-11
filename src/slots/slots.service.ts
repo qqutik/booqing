@@ -43,7 +43,7 @@ export class SlotsService {
     const slots = await this.repository.find({
       where: {
         resourceId,
-        status: SlotStatusEnum.AVAILABLE,
+        ...(dto.status ? { status:  dto.status } : {}),
         startAt: Between(fromDate, toDate),
       },
       order: { startAt: 'ASC' },

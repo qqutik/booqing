@@ -1,4 +1,5 @@
-import { IsISO8601, IsOptional, IsTimeZone } from 'class-validator';
+import { IsEnum, IsISO8601, IsOptional, IsTimeZone } from 'class-validator';
+import { SlotStatusEnum } from '../enums/slot-status.enum.js';
 
 export class GetSlotsDto {
   @IsISO8601()
@@ -6,6 +7,10 @@ export class GetSlotsDto {
 
   @IsISO8601()
   to: string;
+
+  @IsOptional()
+  @IsEnum(SlotStatusEnum)
+  status?: SlotStatusEnum;
 
   @IsOptional()
   @IsTimeZone()
