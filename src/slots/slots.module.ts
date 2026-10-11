@@ -14,5 +14,6 @@ import { ResourcesModule } from '../resources/resources.module.js';
     WorkingHoursModule,
     TypeOrmModule.forFeature([Slot]),
   ],
+  exports: [SlotsService],
 })
 export class SlotsModule {}

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
@@ -23,6 +24,18 @@ export class SlotsService {
     private readonly workingHoursService: WorkingHoursService,
   ) {}
 
+  public async findById(id: number) {
+    const slot = await this.repository.findOneBy({ id });
+    if (!slot){
+      throw new NotFoundException('Slot does not exist');
+    }
+    return slot;
+  }
+
+  public async save(slot: Slot) {
+    return await this.repository.save(slot);
+  }
+
   public async findAll(resourceId: number, dto: GetSlotsDto) {
     const resource = await this.resourceService.findById(resourceId);
     if (!resource) {
@@ -43,13 +56,13 @@ export class SlotsService {
     const slots = await this.repository.find({
       where: {
         resourceId,
-        ...(dto.status ? { status:  dto.status } : {}),
+        ...(dto.status ? { status: dto.status } : {}),
         startAt: Between(fromDate, toDate),
       },
       order: { startAt: 'ASC' },
     });
 
-    return slots.map(slot => {
+    return slots.map((slot) => {
       return {
         id: slot.id,
         resourceId: slot.resourceId,
