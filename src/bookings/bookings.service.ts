@@ -97,33 +97,70 @@ export class BookingsService {
   }
 
   public async confirm(id: number, userId: number) {
-    const booking = await this.findById(id);
-    this.checkAvailableBookingConfirm(booking, userId);
-    const slot = await this.slotService.findById(booking.slotId);
+    return await this.dataSource.transaction(
+      async (manager: EntityManager) => {
+        // Lock the booking row so concurrent confirm and cancel requests run one after another:
+        // the second one waits, re-reads the updated status and fails the check instead of overwriting the first.
+        const booking = await manager.findOne(Booking, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!booking) {
+          throw new NotFoundException(`Booking #${id} does not exist`);
+        }
 
-    slot.status = SlotStatusEnum.BOOKED;
-    booking.status = BookingStatusEnum.CONFIRMED;
+        this.checkAvailableBookingConfirm(booking, userId);
 
-    await this.slotService.save(slot);
-    await this.repository.save(booking);
+        const slot = await manager.findOne(Slot, {
+          where: { id: booking.slotId },
+        });
+        if (!slot) {
+          throw new NotFoundException(`Slot #${booking.slotId} does not exist`);
+        }
 
-    return booking;
+        slot.status = SlotStatusEnum.BOOKED;
+        booking.status = BookingStatusEnum.CONFIRMED;
+
+        await manager.save(Slot, slot);
+        await manager.save(Booking, booking);
+
+        return booking;
+      }
+    );
+
   }
 
   public async cancel(id: number, userId: number) {
-    const booking = await this.findById(id);
-    const slot = await this.slotService.findById(booking.slotId);
+    return await this.dataSource.transaction(
+      async (manager: EntityManager) => {
 
-    this.checkAvailableBookingCancel(booking, slot, userId);
+        const booking = await manager.findOne(Booking, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!booking) {
+          throw new NotFoundException(`Booking #${id} does not exist`);
+        }
 
-    slot.status = SlotStatusEnum.AVAILABLE;
-    booking.status = BookingStatusEnum.CANCELLED;
-    booking.cancelledAt = new Date();
+        const slot = await manager.findOne(Slot, {
+          where: { id: booking.slotId },
+        });
+        if (!slot) {
+          throw new NotFoundException(`Slot #${booking.slotId} does not exist`);
+        }
 
-    await this.slotService.save(slot);
-    await this.repository.save(booking);
+        this.checkAvailableBookingCancel(booking, slot, userId);
 
-    return booking;
+        slot.status = SlotStatusEnum.AVAILABLE;
+        booking.status = BookingStatusEnum.CANCELLED;
+        booking.cancelledAt = new Date();
+
+        await manager.save(Slot, slot);
+        await manager.save(Booking, booking);
+
+        return booking;
+      }
+    );
   }
 
   private checkAvailableBookingConfirm(booking: Booking, userId: number) {
