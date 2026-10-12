@@ -12,12 +12,15 @@ import type { Slot } from '../../slots/entities/slot.entity.js';
 import type { User } from '../../users/entities/user.entity.js';
 import { BookingStatusEnum } from '../enums/booking-status.enum.js';
 
+@Index('unique_bookings_active_slot', ['slotId'], {
+  unique: true,
+  where: `"status" <> 'cancelled'`,
+})
 @Entity('bookings')
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index()
   @Column()
   slotId: number;
 

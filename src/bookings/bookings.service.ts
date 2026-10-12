@@ -16,6 +16,7 @@ import {
   type FindOptionsRelations,
   In,
   MoreThan,
+  QueryFailedError,
   Repository,
 } from 'typeorm';
 import { Booking } from './entities/booking.entity.js';
@@ -51,31 +52,48 @@ export class BookingsService {
   }
 
   public async create(dto: CreateBookingDto, userId: number) {
-    return this.dataSource.transaction(async (manager: EntityManager) => {
-      const slot = await manager.findOne(Slot, {
-        where: { id: dto.slotId },
-        relations: { resource: true }
-      });
-      if (!slot) {
-        throw new NotFoundException(`Slot #${dto.slotId} does not exist`);
-      }
+    try {
+      return await this.dataSource.transaction(
+        async (manager: EntityManager) => {
+          const slot = await manager.findOne(Slot, {
+            where: { id: dto.slotId },
+            relations: { resource: true },
+          });
+          if (!slot) {
+            throw new NotFoundException(`Slot #${dto.slotId} does not exist`);
+          }
 
-      this.checkAvailableSlot(slot);
-      await this.checkAvailableCreate(manager, slot, userId);
+          this.checkAvailableSlot(slot);
+          await this.checkAvailableCreate(manager, slot, userId);
 
-      const result = await manager.update(
-        Slot,
-        { id: slot.id, version: slot.version, status: SlotStatusEnum.AVAILABLE },
-        { status: SlotStatusEnum.HELD },
+          const result = await manager.update(
+            Slot,
+            {
+              id: slot.id,
+              version: slot.version,
+              status: SlotStatusEnum.AVAILABLE,
+            },
+            { status: SlotStatusEnum.HELD },
+          );
+
+          if (result.affected === 0) {
+            throw new ConflictException('Slot is not available');
+          }
+
+          const booking = manager.create(Booking, { ...dto, userId });
+          return manager.save(booking);
+        },
       );
-
-      if (result.affected === 0) {
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        error.driverError.code === '23505' &&
+        error.driverError.constraint === 'unique_bookings_active_slot'
+      ) {
         throw new ConflictException('Slot is not available');
       }
-
-      const booking = manager.create(Booking, { ...dto, userId });
-      return manager.save(booking);
-    });
+      throw error;
+    }
   }
 
   public async confirm(id: number, userId: number) {
