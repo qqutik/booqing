@@ -16,4 +16,5 @@ export const envValidationSchema = Joi.object({
   JWT_EXPIRES_IN: Joi.number().default(3600),
 
   BOOKING_CANCEL_MIN_HOURS: Joi.number().integer().min(0).default(6),
+  BOOKING_MAX_ACTIVE_PER_USER: Joi.number().integer().min(1).default(10),
 });

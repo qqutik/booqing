@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, type FindOptionsRelations, Repository } from 'typeorm';
 import { Slot } from './entities/slot.entity.js';
 import { ResourcesService } from '../resources/resources.service.js';
 import { WorkingHoursService } from '../working-hours/working-hours.service.js';
@@ -24,10 +24,13 @@ export class SlotsService {
     private readonly workingHoursService: WorkingHoursService,
   ) {}
 
-  public async findById(id: number) {
-    const slot = await this.repository.findOneBy({ id });
-    if (!slot){
-      throw new NotFoundException('Slot does not exist');
+  public async findById(id: number, relations?: FindOptionsRelations<Slot>) {
+    const slot = await this.repository.findOne({
+      where: { id },
+      relations,
+    });
+    if (!slot) {
+      throw new NotFoundException(`Slot #${id} does not exist`);
     }
     return slot;
   }

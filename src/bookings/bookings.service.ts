@@ -10,7 +10,7 @@ import { CreateBookingDto } from './dto/create-booking.dto.js';
 import { SlotStatusEnum } from '../slots/enums/slot-status.enum.js';
 import { Slot } from '../slots/entities/slot.entity.js';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { type FindOptionsRelations, In, MoreThan, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity.js';
 import { BookingStatusEnum } from './enums/booking-status.enum.js';
 import { ConfigService } from '@nestjs/config';
@@ -31,17 +31,23 @@ export class BookingsService {
     });
   }
 
-  public async findById(id: number) {
-    const booking = await this.repository.findOneBy({ id });
+  public async findById(id: number, relations?: FindOptionsRelations<Booking>) {
+    const booking = await this.repository.findOne({
+      where: { id },
+      relations,
+    });
     if (!booking) {
-      throw new NotFoundException('Booking does not exist');
+      throw new NotFoundException(`Booking #${id} does not exist`);
     }
     return booking;
   }
 
   public async create(dto: CreateBookingDto, userId: number) {
-    const slot = await this.slotService.findById(dto.slotId);
+    const slot = await this.slotService.findById(dto.slotId, {
+      resource: true,
+    });
     this.checkAvailableSlot(slot);
+    await this.checkAvailableCreate(slot, userId);
 
     slot.status = SlotStatusEnum.HELD;
     await this.slotService.save(slot);
@@ -91,7 +97,11 @@ export class BookingsService {
     }
   }
 
-  private checkAvailableBookingCancel(booking: Booking, slot: Slot, userId: number) {
+  private checkAvailableBookingCancel(
+    booking: Booking,
+    slot: Slot,
+    userId: number,
+  ) {
     if (booking.userId !== userId) {
       throw new ForbiddenException('You cant cancel this booking');
     }
@@ -120,6 +130,29 @@ export class BookingsService {
     }
     if (slot.startAt < new Date()) {
       throw new BadRequestException('Slot time spent');
+    }
+  }
+
+  private async checkAvailableCreate(slot: Slot, userId: number) {
+    const activeBookingCount = await this.repository.count({
+      where: {
+        userId,
+        status: In([BookingStatusEnum.PENDING, BookingStatusEnum.CONFIRMED]),
+        slot: {
+          startAt: MoreThan(new Date()),
+          resource: { type: slot.resource.type },
+        },
+      },
+    });
+
+    const maxActive = this.configService.getOrThrow<number>(
+      'BOOKING_MAX_ACTIVE_PER_USER',
+    );
+
+    if (activeBookingCount >= maxActive) {
+      throw new ConflictException(
+        `You can have at most ${maxActive} active bookings for resource type "${slot.resource.type}"`,
+      );
     }
   }
 }

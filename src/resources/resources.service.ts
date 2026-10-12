@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { type FindOptionsRelations, Repository } from 'typeorm';
 import { Resource } from './entities/resource.entity.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
@@ -28,9 +28,10 @@ export class ResourcesService {
     return this.repository.find();
   }
 
-  public async findById(id: number) {
+  public async findById(id: number, relations?: FindOptionsRelations<Resource>) {
     const resource = await this.repository.findOne({
       where: { id },
+      relations,
     });
     if (!resource) {
       throw new NotFoundException(`Resource #${id} not found`);
