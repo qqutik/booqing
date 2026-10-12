@@ -13,6 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity.js';
 import { BookingStatusEnum } from './enums/booking-status.enum.js';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BookingsService {
@@ -20,6 +21,7 @@ export class BookingsService {
     @InjectRepository(Booking)
     private readonly repository: Repository<Booking>,
     private readonly slotService: SlotsService,
+    private readonly configService: ConfigService,
   ) {}
 
   public async findAll(userId: number) {
@@ -52,13 +54,8 @@ export class BookingsService {
 
   public async confirm(id: number, userId: number) {
     const booking = await this.findById(id);
-    if (booking.userId !== userId) {
-      throw new ForbiddenException('You cant confirm this booking');
-    }
-    if (booking.status !== BookingStatusEnum.PENDING){
-      throw new ConflictException('Booking already confirmed or cancelled')
-    }
-      const slot = await this.slotService.findById(booking.slotId);
+    this.checkAvailableBookingConfirm(booking, userId);
+    const slot = await this.slotService.findById(booking.slotId);
 
     slot.status = SlotStatusEnum.BOOKED;
     booking.status = BookingStatusEnum.CONFIRMED;
@@ -71,13 +68,9 @@ export class BookingsService {
 
   public async cancel(id: number, userId: number) {
     const booking = await this.findById(id);
-    if (booking.userId !== userId) {
-      throw new ForbiddenException('You cant cancel this booking');
-    }
-    if (booking.status === BookingStatusEnum.CANCELLED) {
-      throw new ConflictException('Booking already cancelled');
-    }
     const slot = await this.slotService.findById(booking.slotId);
+
+    this.checkAvailableBookingCancel(booking, slot, userId);
 
     slot.status = SlotStatusEnum.AVAILABLE;
     booking.status = BookingStatusEnum.CANCELLED;
@@ -87,6 +80,38 @@ export class BookingsService {
     await this.repository.save(booking);
 
     return booking;
+  }
+
+  private checkAvailableBookingConfirm(booking: Booking, userId: number) {
+    if (booking.userId !== userId) {
+      throw new ForbiddenException('You cant confirm this booking');
+    }
+    if (booking.status !== BookingStatusEnum.PENDING) {
+      throw new ConflictException('Booking already confirmed or cancelled');
+    }
+  }
+
+  private checkAvailableBookingCancel(booking: Booking, slot: Slot, userId: number) {
+    if (booking.userId !== userId) {
+      throw new ForbiddenException('You cant cancel this booking');
+    }
+    if (booking.status === BookingStatusEnum.CANCELLED) {
+      throw new ConflictException('Booking already cancelled');
+    }
+
+    const minHours = this.configService.getOrThrow<number>(
+      'BOOKING_CANCEL_MIN_HOURS',
+    );
+    const msLeft = slot.startAt.getTime() - Date.now();
+
+    if (
+      booking.status === BookingStatusEnum.CONFIRMED &&
+      msLeft <= minHours * 60 * 60 * 1000
+    ) {
+      throw new ConflictException(
+        `Booking can be cancelled only more than ${minHours} hours before the slot starts`,
+      );
+    }
   }
 
   private checkAvailableSlot(slot: Slot) {
