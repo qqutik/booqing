@@ -10,7 +10,14 @@ import { CreateBookingDto } from './dto/create-booking.dto.js';
 import { SlotStatusEnum } from '../slots/enums/slot-status.enum.js';
 import { Slot } from '../slots/entities/slot.entity.js';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type FindOptionsRelations, In, MoreThan, Repository } from 'typeorm';
+import {
+  DataSource,
+  type EntityManager,
+  type FindOptionsRelations,
+  In,
+  MoreThan,
+  Repository,
+} from 'typeorm';
 import { Booking } from './entities/booking.entity.js';
 import { BookingStatusEnum } from './enums/booking-status.enum.js';
 import { ConfigService } from '@nestjs/config';
@@ -22,6 +29,7 @@ export class BookingsService {
     private readonly repository: Repository<Booking>,
     private readonly slotService: SlotsService,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   public async findAll(userId: number) {
@@ -43,19 +51,25 @@ export class BookingsService {
   }
 
   public async create(dto: CreateBookingDto, userId: number) {
-    const slot = await this.slotService.findById(dto.slotId, {
-      resource: true,
+    return this.dataSource.transaction(async (manager: EntityManager) => {
+      const slot = await manager.findOne(Slot, {
+        where: { id: dto.slotId },
+        relations: { resource: true },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!slot) {
+        throw new NotFoundException(`Slot #${dto.slotId} does not exist`);
+      }
+
+      this.checkAvailableSlot(slot);
+      await this.checkAvailableCreate(manager, slot, userId);
+
+      slot.status = SlotStatusEnum.HELD;
+      await manager.save(slot);
+
+      const booking = manager.create(Booking, { ...dto, userId });
+      return manager.save(booking);
     });
-    this.checkAvailableSlot(slot);
-    await this.checkAvailableCreate(slot, userId);
-
-    slot.status = SlotStatusEnum.HELD;
-    await this.slotService.save(slot);
-
-    const booking = this.repository.create({ ...dto, userId });
-    await this.repository.save(booking);
-
-    return booking;
   }
 
   public async confirm(id: number, userId: number) {
@@ -133,8 +147,8 @@ export class BookingsService {
     }
   }
 
-  private async checkAvailableCreate(slot: Slot, userId: number) {
-    const activeBookingCount = await this.repository.count({
+  private async checkAvailableCreate(manager: EntityManager, slot: Slot, userId: number) {
+    const activeBookingCount = await manager.count(Booking, {
       where: {
         userId,
         status: In([BookingStatusEnum.PENDING, BookingStatusEnum.CONFIRMED]),

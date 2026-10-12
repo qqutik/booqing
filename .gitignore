@@ -6,6 +6,8 @@
 # Learning docs (personal)
 /docs
 CLAUDE.md
+/.claude
+/scripts
 
 # Logs
 logs
