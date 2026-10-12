@@ -54,8 +54,7 @@ export class BookingsService {
     return this.dataSource.transaction(async (manager: EntityManager) => {
       const slot = await manager.findOne(Slot, {
         where: { id: dto.slotId },
-        relations: { resource: true },
-        lock: { mode: 'pessimistic_write' },
+        relations: { resource: true }
       });
       if (!slot) {
         throw new NotFoundException(`Slot #${dto.slotId} does not exist`);
@@ -64,8 +63,15 @@ export class BookingsService {
       this.checkAvailableSlot(slot);
       await this.checkAvailableCreate(manager, slot, userId);
 
-      slot.status = SlotStatusEnum.HELD;
-      await manager.save(slot);
+      const result = await manager.update(
+        Slot,
+        { id: slot.id, version: slot.version, status: SlotStatusEnum.AVAILABLE },
+        { status: SlotStatusEnum.HELD },
+      );
+
+      if (result.affected === 0) {
+        throw new ConflictException('Slot is not available');
+      }
 
       const booking = manager.create(Booking, { ...dto, userId });
       return manager.save(booking);
