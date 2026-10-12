@@ -72,6 +72,8 @@ export class SlotsService {
         status: slot.status,
         startAt: DateTime.fromJSDate(slot.startAt).setZone(timezone).toISO(),
         endAt: DateTime.fromJSDate(slot.endAt).setZone(timezone).toISO(),
+        price: slot.price,
+        currency: resource.currency,
       };
     });
   }
@@ -87,6 +89,7 @@ export class SlotsService {
       workingHours,
       14,
       DateTime.now().setZone(resource.timezone),
+      resource.price,
     );
     if (slots.length === 0) {
       throw new BadRequestException('No working hours found');
@@ -98,7 +101,7 @@ export class SlotsService {
       .createQueryBuilder()
       .insert()
       .values(slotsData)
-      .orIgnore()
+      .orUpdate(['price'], ['resource_id', 'start_at'])
       .execute();
     return slotsData;
   }
@@ -108,6 +111,7 @@ export class SlotsService {
     intervals: WorkingHoursInterface[],
     days: number,
     startDate: DateTime,
+    defaultPrice: number,
   ): SlotsInterface[] {
     const result: SlotsInterface[] = [];
 
@@ -138,6 +142,7 @@ export class SlotsService {
           result.push({
             startAt: cursor.toJSDate(),
             endAt: cursor.plus({ minutes: duration }).toJSDate(),
+            price: workingHour.price ?? defaultPrice,
           });
           cursor = cursor.plus({ minutes: duration });
         }

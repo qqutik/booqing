@@ -36,6 +36,9 @@ export class Slot {
   })
   status: SlotStatusEnum;
 
+  @Column('integer', { default: 0 })
+  price: number;
+
   @VersionColumn()
   version: number;
 

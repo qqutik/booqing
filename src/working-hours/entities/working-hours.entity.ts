@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import type { Resource } from '../../resources/entities/resource.entity.js';
 
+@Check('price >= 0')
 @Check('start_time < end_time')
 @Check('weekday BETWEEN 1 AND 7')
 @Unique((fields) => [fields.resourceId, fields.weekday, fields.startTime])
@@ -27,6 +28,9 @@ export class WorkingHours {
     onDelete: 'CASCADE',
   })
   resource: Relation<Resource>;
+
+  @Column('integer', { nullable: true })
+  price: number | null;
 
   @Column('smallint')
   weekday: number;

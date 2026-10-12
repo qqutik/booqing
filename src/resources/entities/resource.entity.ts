@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -12,7 +13,9 @@ import {
 import { ResourceTypeEnum } from '../enums/resource-type.enum.js';
 import type { User } from '../../users/entities/user.entity.js';
 import type { WorkingHours } from '../../working-hours/entities/working-hours.entity.js';
+import { CurrencyEnum } from '../enums/currency.enum.js';
 
+@Check('price >= 0')
 @Entity('resources')
 export class Resource {
   @PrimaryGeneratedColumn()
@@ -42,6 +45,12 @@ export class Resource {
 
   @Column('text', { nullable: true })
   description: string | null;
+
+  @Column('varchar', { length: 3, default: CurrencyEnum.UAH })
+  currency: CurrencyEnum;
+
+  @Column('integer', { default: 0 })
+  price: number;
 
   @Column('varchar', { length: 255, nullable: true })
   image: string | null;

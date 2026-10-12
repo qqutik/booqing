@@ -80,7 +80,12 @@ export class BookingsService {
             throw new ConflictException('Slot is not available');
           }
 
-          const booking = manager.create(Booking, { ...dto, userId });
+          const booking = manager.create(Booking, {
+            ...dto,
+            userId,
+            price: slot.price,
+            currency: slot.resource.currency,
+          });
           return manager.save(booking);
         },
       );
