@@ -15,6 +15,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ExpressAdapter } from '@bull-board/express';
       route: '/queues',
       adapter: ExpressAdapter,
     }),
+    ScheduleModule.forRoot(),
     UsersModule,
     RolesModule,
     AuthModule,

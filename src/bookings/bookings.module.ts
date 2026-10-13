@@ -5,11 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Booking } from './entities/booking.entity.js';
 import { SlotsModule } from '../slots/slots.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { BookingsScheduler } from './bookings.scheduler.js';
+import { LockModule } from '../lock/lock.module.js';
 
 @Module({
   controllers: [BookingsController],
-  providers: [BookingsService],
+  providers: [BookingsService, BookingsScheduler],
   imports: [
+    LockModule,
     SlotsModule,
     NotificationsModule,
     TypeOrmModule.forFeature([Booking]),

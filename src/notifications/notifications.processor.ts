@@ -39,7 +39,6 @@ export class NotificationsProcessor extends WorkerHost {
     if (job.name === 'booking-reminder') {
       return this.reminderMail(booking, startAt);
     }
-
   }
 
   private async confirmationMail(booking: Booking, startAt: string) {

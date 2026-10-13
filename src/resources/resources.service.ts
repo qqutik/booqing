@@ -24,11 +24,18 @@ export class ResourcesService {
     return this.repository.save(resource);
   }
 
+  public async findActive() {
+    return this.repository.find({ where: { isActive: true } });
+  }
+
   public findAll() {
     return this.repository.find();
   }
 
-  public async findById(id: number, relations?: FindOptionsRelations<Resource>) {
+  public async findById(
+    id: number,
+    relations?: FindOptionsRelations<Resource>,
+  ) {
     const resource = await this.repository.findOne({
       where: { id },
       relations,

@@ -3,7 +3,8 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  Post, Query,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { SlotsService } from './slots.service.js';

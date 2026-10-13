@@ -14,6 +14,7 @@ import type { WorkingHoursInterface } from '../working-hours/interfaces/working-
 import type { SlotsInterface } from './interfaces/slots.interface.js';
 import { GetSlotsDto } from './dto/get-slots.dto.js';
 import { SlotStatusEnum } from './enums/slot-status.enum.js';
+import { Resource } from '../resources/entities/resource.entity.js';
 
 @Injectable()
 export class SlotsService {
@@ -83,7 +84,15 @@ export class SlotsService {
     if (resource.userId !== userId) {
       throw new ForbiddenException('Resource not found');
     }
-    const workingHours = await this.workingHoursService.findAll(resourceId);
+    const slots = await this.generateForResource(resource);
+    if (slots.length === 0) {
+      throw new BadRequestException('No working hours found');
+    }
+    return slots;
+  }
+
+  public async generateForResource(resource: Resource) {
+    const workingHours = await this.workingHoursService.findAll(resource.id);
     const slots = this.syncSlots(
       resource.slotDurationMinutes,
       workingHours,
@@ -92,11 +101,12 @@ export class SlotsService {
       resource.price,
     );
     if (slots.length === 0) {
-      throw new BadRequestException('No working hours found');
+      return [];
     }
-    const slotsData = slots.map((slot) => {
-      return { ...slot, resourceId };
-    });
+    const slotsData = slots.map((slot) => ({
+      ...slot,
+      resourceId: resource.id,
+    }));
     await this.repository
       .createQueryBuilder()
       .insert()

@@ -15,6 +15,7 @@ import {
   type EntityManager,
   type FindOptionsRelations,
   In,
+  LessThan,
   MoreThan,
   QueryFailedError,
   Repository,
@@ -94,7 +95,6 @@ export class BookingsService {
 
       await this.notificationsService.sendBookingCreated(booking.id);
       return booking;
-
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
@@ -139,7 +139,10 @@ export class BookingsService {
       },
     );
 
-    await this.notificationsService.scheduleBookingReminder(booking.id, slot.startAt);
+    await this.notificationsService.scheduleBookingReminder(
+      booking.id,
+      slot.startAt,
+    );
     return booking;
   }
 
@@ -175,6 +178,51 @@ export class BookingsService {
     );
     await this.notificationsService.cancelBookingReminder(booking.id);
     return booking;
+  }
+
+  public async expirePending() {
+    const minutes = this.configService.getOrThrow<number>(
+      'BOOKING_HOLD_MINUTES',
+    );
+
+    const expired = await this.repository.find({
+      select: { id: true },
+      where: {
+        status: BookingStatusEnum.PENDING,
+        createdAt: LessThan(new Date(Date.now() - minutes * 60 * 1000)),
+      },
+    });
+
+    for (const { id } of expired) {
+      await this.dataSource.transaction(async (manager) => {
+        const booking = await manager.findOne(Booking, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!booking || booking.status !== BookingStatusEnum.PENDING) {
+          return;
+        }
+        await manager.update(Slot, booking.slotId, {
+          status: SlotStatusEnum.AVAILABLE,
+        });
+        await manager.update(Booking, id, {
+          status: BookingStatusEnum.EXPIRED,
+        });
+      });
+    }
+
+    return expired.length;
+  }
+
+  public async completePast() {
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(Booking)
+      .set({ status: BookingStatusEnum.COMPLETED })
+      .where('status = :status', { status: BookingStatusEnum.CONFIRMED })
+      .andWhere('slot_id IN (SELECT id FROM slots WHERE end_at < now())')
+      .execute();
+    return result.affected ?? 0;
   }
 
   private checkAvailableBookingConfirm(booking: Booking, userId: number) {

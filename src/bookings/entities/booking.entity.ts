@@ -15,7 +15,7 @@ import { CurrencyEnum } from '../../resources/enums/currency.enum.js';
 
 @Index('unique_bookings_active_slot', ['slotId'], {
   unique: true,
-  where: `"status" <> 'cancelled'`,
+  where: `"status" IN ('pending', 'confirmed')`,
 })
 @Entity('bookings')
 export class Booking {

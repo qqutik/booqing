@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MailService {
-
   private readonly transporter: Transporter;
   private readonly from: string;
 
