@@ -57,6 +57,12 @@ export class Booking {
   @Column('timestamptz', { nullable: true })
   cancelledAt: Date | null;
 
+  @Column('timestamptz', { nullable: true })
+  confirmationSentAt: Date | null;
+
+  @Column('timestamptz', { nullable: true })
+  reminderSentAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

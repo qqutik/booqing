@@ -22,6 +22,7 @@ import {
 import { Booking } from './entities/booking.entity.js';
 import { BookingStatusEnum } from './enums/booking-status.enum.js';
 import { ConfigService } from '@nestjs/config';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
 export class BookingsService {
@@ -30,6 +31,7 @@ export class BookingsService {
     private readonly repository: Repository<Booking>,
     private readonly slotService: SlotsService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -53,7 +55,7 @@ export class BookingsService {
 
   public async create(dto: CreateBookingDto, userId: number) {
     try {
-      return await this.dataSource.transaction(
+      const booking = await this.dataSource.transaction(
         async (manager: EntityManager) => {
           const slot = await manager.findOne(Slot, {
             where: { id: dto.slotId },
@@ -89,6 +91,10 @@ export class BookingsService {
           return manager.save(booking);
         },
       );
+
+      await this.notificationsService.sendBookingCreated(booking.id);
+      return booking;
+
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
@@ -102,7 +108,7 @@ export class BookingsService {
   }
 
   public async confirm(id: number, userId: number) {
-    return await this.dataSource.transaction(
+    const { booking, slot } = await this.dataSource.transaction(
       async (manager: EntityManager) => {
         // Lock the booking row so concurrent confirm and cancel requests run one after another:
         // the second one waits, re-reads the updated status and fails the check instead of overwriting the first.
@@ -129,16 +135,17 @@ export class BookingsService {
         await manager.save(Slot, slot);
         await manager.save(Booking, booking);
 
-        return booking;
-      }
+        return { booking, slot };
+      },
     );
 
+    await this.notificationsService.scheduleBookingReminder(booking.id, slot.startAt);
+    return booking;
   }
 
   public async cancel(id: number, userId: number) {
-    return await this.dataSource.transaction(
+    const booking = await this.dataSource.transaction(
       async (manager: EntityManager) => {
-
         const booking = await manager.findOne(Booking, {
           where: { id },
           lock: { mode: 'pessimistic_write' },
@@ -164,8 +171,10 @@ export class BookingsService {
         await manager.save(Booking, booking);
 
         return booking;
-      }
+      },
     );
+    await this.notificationsService.cancelBookingReminder(booking.id);
+    return booking;
   }
 
   private checkAvailableBookingConfirm(booking: Booking, userId: number) {
@@ -213,7 +222,11 @@ export class BookingsService {
     }
   }
 
-  private async checkAvailableCreate(manager: EntityManager, slot: Slot, userId: number) {
+  private async checkAvailableCreate(
+    manager: EntityManager,
+    slot: Slot,
+    userId: number,
+  ) {
     const activeBookingCount = await manager.count(Booking, {
       where: {
         userId,

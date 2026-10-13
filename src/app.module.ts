@@ -1,5 +1,5 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getDatabaseConfig } from './config/database.config.js';
@@ -11,6 +11,10 @@ import { ResourcesModule } from './resources/resources.module.js';
 import { WorkingHoursModule } from './working-hours/working-hours.module.js';
 import { SlotsModule } from './slots/slots.module.js';
 import { BookingsModule } from './bookings/bookings.module.js';
+import { BullModule } from '@nestjs/bullmq';
+import { NotificationsModule } from './notifications/notifications.module.js';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 
 @Module({
   imports: [
@@ -24,6 +28,19 @@ import { BookingsModule } from './bookings/bookings.module.js';
         autoLoadEntities: true,
       }),
     }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.getOrThrow<string>('REDIS_HOST'),
+          port: config.getOrThrow<number>('REDIS_PORT'),
+        },
+      }),
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
+    }),
     UsersModule,
     RolesModule,
     AuthModule,
@@ -31,6 +48,7 @@ import { BookingsModule } from './bookings/bookings.module.js';
     WorkingHoursModule,
     SlotsModule,
     BookingsModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [
