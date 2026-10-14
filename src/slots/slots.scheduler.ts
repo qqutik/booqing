@@ -11,7 +11,7 @@ export class SlotsScheduler {
   constructor(
     private readonly slotsService: SlotsService,
     private readonly resourcesService: ResourcesService,
-    private readonly lockService: LockService
+    private readonly lockService: LockService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)

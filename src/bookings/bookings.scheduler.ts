@@ -9,7 +9,7 @@ export class BookingsScheduler {
 
   constructor(
     private readonly bookingsService: BookingsService,
-    private readonly lockService: LockService
+    private readonly lockService: LockService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
