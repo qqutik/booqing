@@ -17,5 +17,6 @@ import { LockModule } from '../lock/lock.module.js';
     NotificationsModule,
     TypeOrmModule.forFeature([Booking]),
   ],
+  exports: [BookingsService],
 })
 export class BookingsModule {}
