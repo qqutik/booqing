@@ -7,6 +7,7 @@ import { SlotsModule } from '../slots/slots.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { BookingsScheduler } from './bookings.scheduler.js';
 import { LockModule } from '../lock/lock.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
 
 @Module({
   controllers: [BookingsController],
@@ -14,6 +15,7 @@ import { LockModule } from '../lock/lock.module.js';
   imports: [
     LockModule,
     SlotsModule,
+    PaymentsModule,
     NotificationsModule,
     TypeOrmModule.forFeature([Booking]),
   ],

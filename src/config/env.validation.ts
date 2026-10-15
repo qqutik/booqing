@@ -26,4 +26,9 @@ export const envValidationSchema = Joi.object({
   MAIL_HOST: Joi.string().default('localhost'),
   MAIL_PORT: Joi.number().default(1025),
   MAIL_FROM: Joi.string().email().default('no-reply@booqing.local'),
+
+  STRIPE_SECRET_KEY: Joi.string().required(),
+  STRIPE_WEBHOOK_SECRET: Joi.string().required(),
+  STRIPE_SUCCESS_URL: Joi.string().required().uri(),
+  STRIPE_FAILURE_URL: Joi.string().required().uri(),
 });

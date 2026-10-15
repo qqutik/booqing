@@ -11,5 +11,6 @@ export function getDatabaseConfig(): DataSourceOptions {
     database: process.env.DB_NAME,
     namingStrategy: new SnakeNamingStrategy(),
     synchronize: false,
+    uuidExtension: 'pgcrypto',
   };
 }
