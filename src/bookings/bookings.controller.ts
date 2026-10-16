@@ -27,15 +27,6 @@ export class BookingsController {
     return this.service.create(dto, user.sub);
   }
 
-  @Patch(':id/confirm')
-  @UseGuards(JwtAuthGuard)
-  public confirm(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.service.confirm(id, user.sub);
-  }
-
   @Patch(':id/cancel')
   @UseGuards(JwtAuthGuard)
   public cancel(

@@ -18,7 +18,7 @@ export const envValidationSchema = Joi.object({
   BOOKING_CANCEL_MIN_HOURS: Joi.number().integer().min(0).default(6),
   BOOKING_MAX_ACTIVE_PER_USER: Joi.number().integer().min(1).default(10),
   BOOKING_REMINDER_HOURS: Joi.number().integer().min(1).default(24),
-  BOOKING_HOLD_MINUTES: Joi.number().integer().min(1).default(10),
+  BOOKING_HOLD_MINUTES: Joi.number().integer().min(1).default(35),
 
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().default(6379),
@@ -27,8 +27,10 @@ export const envValidationSchema = Joi.object({
   MAIL_PORT: Joi.number().default(1025),
   MAIL_FROM: Joi.string().email().default('no-reply@booqing.local'),
 
-  STRIPE_SECRET_KEY: Joi.string().required(),
+  PAYMENT_SESSION_MINUTES: Joi.number().integer().min(30).default(30),
+
+  STRIPE_SECRET_KEY: Joi.string().pattern(/^sk_test_/).required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
   STRIPE_SUCCESS_URL: Joi.string().required().uri(),
-  STRIPE_FAILURE_URL: Joi.string().required().uri(),
+  STRIPE_CANCEL_URL: Joi.string().required().uri(),
 });

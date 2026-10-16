@@ -24,6 +24,8 @@ import { Booking } from './entities/booking.entity.js';
 import { BookingStatusEnum } from './enums/booking-status.enum.js';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
+import { PaymentProviderEnum } from '../payments/enums/payment-provider.enum.js';
 
 @Injectable()
 export class BookingsService {
@@ -32,6 +34,7 @@ export class BookingsService {
     private readonly repository: Repository<Booking>,
     private readonly slotService: SlotsService,
     private readonly configService: ConfigService,
+    private readonly paymentService: PaymentsService,
     private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
   ) {}
@@ -56,7 +59,7 @@ export class BookingsService {
 
   public async create(dto: CreateBookingDto, userId: number) {
     try {
-      const booking = await this.dataSource.transaction(
+      const { booking, slot } = await this.dataSource.transaction(
         async (manager: EntityManager) => {
           const slot = await manager.findOne(Slot, {
             where: { id: dto.slotId },
@@ -69,6 +72,8 @@ export class BookingsService {
           this.checkAvailableSlot(slot);
           await this.checkAvailableCreate(manager, slot, userId);
 
+          const freeBooking = slot.price === 0;
+
           const result = await manager.update(
             Slot,
             {
@@ -76,9 +81,10 @@ export class BookingsService {
               version: slot.version,
               status: SlotStatusEnum.AVAILABLE,
             },
-            { status: SlotStatusEnum.HELD },
+            {
+              status: freeBooking ? SlotStatusEnum.BOOKED : SlotStatusEnum.HELD,
+            },
           );
-
           if (result.affected === 0) {
             throw new ConflictException('Slot is not available');
           }
@@ -88,13 +94,38 @@ export class BookingsService {
             userId,
             price: slot.price,
             currency: slot.resource.currency,
+            status: freeBooking
+              ? BookingStatusEnum.CONFIRMED
+              : BookingStatusEnum.PENDING,
           });
-          return manager.save(booking);
+          await manager.save(booking);
+
+          return { booking, slot };
         },
       );
 
+      let checkoutUrl: string | null = null;
+
+      if (booking.status === BookingStatusEnum.PENDING) {
+        try {
+          checkoutUrl = await this.paymentService.purchase({
+            provider: PaymentProviderEnum.STRIPE,
+            bookingId: booking.id,
+            userId: booking.userId,
+            price: booking.price,
+            currency: booking.currency,
+          });
+        } catch (error) {
+          await this.cancel(booking.id, userId);
+          throw error;
+        }
+      } else {
+        await this.afterConfirmed(booking, slot);
+      }
+
       await this.notificationsService.sendBookingCreated(booking.id);
-      return booking;
+
+      return { booking, checkoutUrl };
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
@@ -106,7 +137,6 @@ export class BookingsService {
       throw error;
     }
   }
-
   public async confirm(id: number, userId: number) {
     const { booking, slot } = await this.dataSource.transaction(
       async (manager: EntityManager) => {
@@ -139,11 +169,15 @@ export class BookingsService {
       },
     );
 
+    await this.afterConfirmed(booking, slot);
+    return booking;
+  }
+
+  private async afterConfirmed(booking: Booking, slot: Slot) {
     await this.notificationsService.scheduleBookingReminder(
       booking.id,
       slot.startAt,
     );
-    return booking;
   }
 
   public async cancel(id: number, userId: number) {

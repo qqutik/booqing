@@ -16,9 +16,10 @@ export class PaymentFactory {
     switch (type) {
       case PaymentProviderEnum.STRIPE:
         return this.stripeProcessor;
-      default:
+      default: {
         const unreachable: never = type;
-        throw new Error('Unsupported payment processor');
+        throw new Error(`Unsupported payment provider: ${unreachable}`);
+      }
     }
   }
 }
