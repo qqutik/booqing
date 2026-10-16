@@ -58,6 +58,38 @@ export class BookingsService {
   }
 
   public async create(dto: CreateBookingDto, userId: number) {
+
+    const { booking, slot } = await this.reserveSlot(dto, userId);
+
+    let checkoutUrl: string | null = null;
+
+    if (booking.status === BookingStatusEnum.PENDING) {
+      checkoutUrl = await this.createPayment(booking);
+    } else {
+      await this.afterConfirmed(booking, slot);
+    }
+
+    await this.notificationsService.sendBookingCreated(booking.id);
+
+    return { booking, checkoutUrl };
+  }
+
+  private async createPayment(booking: Booking) {
+    try {
+      return await this.paymentService.purchase({
+        provider: PaymentProviderEnum.STRIPE,
+        bookingId: booking.id,
+        userId: booking.userId,
+        price: booking.price,
+        currency: booking.currency,
+      });
+    } catch (error) {
+      await this.cancel(booking.id, booking.userId);
+      throw error;
+    }
+  }
+
+  private async reserveSlot(dto: CreateBookingDto, userId: number) {
     try {
       const { booking, slot } = await this.dataSource.transaction(
         async (manager: EntityManager) => {
@@ -103,29 +135,7 @@ export class BookingsService {
           return { booking, slot };
         },
       );
-
-      let checkoutUrl: string | null = null;
-
-      if (booking.status === BookingStatusEnum.PENDING) {
-        try {
-          checkoutUrl = await this.paymentService.purchase({
-            provider: PaymentProviderEnum.STRIPE,
-            bookingId: booking.id,
-            userId: booking.userId,
-            price: booking.price,
-            currency: booking.currency,
-          });
-        } catch (error) {
-          await this.cancel(booking.id, userId);
-          throw error;
-        }
-      } else {
-        await this.afterConfirmed(booking, slot);
-      }
-
-      await this.notificationsService.sendBookingCreated(booking.id);
-
-      return { booking, checkoutUrl };
+      return { booking, slot };
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
@@ -137,6 +147,7 @@ export class BookingsService {
       throw error;
     }
   }
+
   public async confirm(id: number, userId: number) {
     const { booking, slot } = await this.dataSource.transaction(
       async (manager: EntityManager) => {
